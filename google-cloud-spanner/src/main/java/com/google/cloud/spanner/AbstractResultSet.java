@@ -462,6 +462,9 @@ abstract class AbstractResultSet<R> extends AbstractStructReader implements Resu
           case INT64:
             builder.set(fieldName).to((Long) value);
             break;
+          case FLOAT32:
+            builder.set(fieldName).to((Float) value);
+            break;
           case FLOAT64:
             builder.set(fieldName).to((Double) value);
             break;
@@ -501,6 +504,9 @@ abstract class AbstractResultSet<R> extends AbstractStructReader implements Resu
                 break;
               case INT64:
                 builder.set(fieldName).toInt64Array((Iterable<Long>) value);
+                break;
+              case FLOAT32:
+                builder.set(fieldName).toFloat32Array((Iterable<Float>) value);
                 break;
               case FLOAT64:
                 builder.set(fieldName).toFloat64Array((Iterable<Double>) value);
@@ -598,6 +604,8 @@ abstract class AbstractResultSet<R> extends AbstractStructReader implements Resu
         case INT64:
           checkType(fieldType, proto, KindCase.STRING_VALUE);
           return Long.parseLong(proto.getStringValue());
+        case FLOAT32:
+          return valueProtoToFloat32(proto);
         case FLOAT64:
           return valueProtoToFloat64(proto);
         case NUMERIC:
@@ -652,6 +660,8 @@ abstract class AbstractResultSet<R> extends AbstractStructReader implements Resu
           // For int64/float64 types, use custom containers.  These avoid wrapper object
           // creation for non-null arrays.
           return new Int64Array(listValue);
+        case FLOAT32:
+          return new Float32Array(listValue);
         case FLOAT64:
           return new Float64Array(listValue);
         case BOOL:
@@ -707,6 +717,11 @@ abstract class AbstractResultSet<R> extends AbstractStructReader implements Resu
     @Override
     protected long getLongInternal(int columnIndex) {
       return (Long) rowData.get(columnIndex);
+    }
+
+    @Override
+    protected float getFloatInternal(int columnIndex) {
+      return (Float) rowData.get(columnIndex);
     }
 
     @Override
@@ -772,6 +787,8 @@ abstract class AbstractResultSet<R> extends AbstractStructReader implements Resu
           return Value.numeric(isNull ? null : getBigDecimalInternal(columnIndex));
         case PG_NUMERIC:
           return Value.pgNumeric(isNull ? null : getStringInternal(columnIndex));
+        case FLOAT32:
+          return Value.float32(isNull ? null : getFloatInternal(columnIndex));
         case FLOAT64:
           return Value.float64(isNull ? null : getDoubleInternal(columnIndex));
         case STRING:
@@ -802,6 +819,8 @@ abstract class AbstractResultSet<R> extends AbstractStructReader implements Resu
               return Value.numericArray(isNull ? null : getBigDecimalListInternal(columnIndex));
             case PG_NUMERIC:
               return Value.pgNumericArray(isNull ? null : getStringListInternal(columnIndex));
+            case FLOAT32:
+              return Value.float32Array(isNull ? null : getFloatListInternal(columnIndex));
             case FLOAT64:
               return Value.float64Array(isNull ? null : getDoubleListInternal(columnIndex));
             case STRING:
@@ -861,6 +880,16 @@ abstract class AbstractResultSet<R> extends AbstractStructReader implements Resu
     @Override
     protected Int64Array getLongListInternal(int columnIndex) {
       return (Int64Array) rowData.get(columnIndex);
+    }
+
+    @Override
+    protected float[] getFloatArrayInternal(int columnIndex) {
+      return getFloatListInternal(columnIndex).toPrimitiveArray(columnIndex);
+    }
+
+    @Override
+    protected Float32Array getFloatListInternal(int columnIndex) {
+      return (Float32Array) rowData.get(columnIndex);
     }
 
     @Override
@@ -1313,6 +1342,34 @@ abstract class AbstractResultSet<R> extends AbstractStructReader implements Resu
     }
   }
 
+  static float valueProtoToFloat32(com.google.protobuf.Value proto) {
+    if (proto.getKindCase() == KindCase.STRING_VALUE) {
+      switch (proto.getStringValue()) {
+        case "-Infinity":
+          return Float.NEGATIVE_INFINITY;
+        case "Infinity":
+          return Float.POSITIVE_INFINITY;
+        case "NaN":
+          return Float.NaN;
+        default:
+          // Fall-through to handling below to produce an error.
+      }
+    }
+    if (proto.getKindCase() != KindCase.NUMBER_VALUE) {
+      throw newSpannerException(
+          ErrorCode.INTERNAL,
+          "Invalid value for column type "
+              + Type.float32()
+              + " expected NUMBER_VALUE or STRING_VALUE with value one of"
+              + " \"Infinity\", \"-Infinity\", or \"NaN\" but was "
+              + proto.getKindCase()
+              + (proto.getKindCase() == KindCase.STRING_VALUE
+                  ? " with value \"" + proto.getStringValue() + "\""
+                  : ""));
+    }
+    return (float)proto.getNumberValue();
+  }
+
   static double valueProtoToFloat64(com.google.protobuf.Value proto) {
     if (proto.getKindCase() == KindCase.STRING_VALUE) {
       switch (proto.getStringValue()) {
@@ -1347,10 +1404,11 @@ abstract class AbstractResultSet<R> extends AbstractStructReader implements Resu
   }
 
   /**
-   * Memory-optimized base class for {@code ARRAY<INT64>} and {@code ARRAY<FLOAT64>} types. Both of
-   * these involve conversions from the type yielded by JSON parsing, which are {@code String} and
-   * {@code BigDecimal} respectively. Rather than construct new wrapper objects for each array
-   * element, we use primitive arrays and a {@code BitSet} to track nulls.
+   * Memory-optimized base class for {@code ARRAY<INT64>}, {@code ARRAY<FLOAT32>} and
+   * {@code ARRAY<FLOAT64>} types. Both of these involve conversions from the type yielded
+   * by JSON parsing, which are {@code String} and {@code BigDecimal} respectively.
+   * Rather than construct new wrapper objects for each array element, we use primitive arrays
+   * and a {@code BitSet} to track nulls.
    */
   abstract static class PrimitiveArray<T, A> extends AbstractList<T> {
     private final A data;
@@ -1432,6 +1490,31 @@ abstract class AbstractResultSet<R> extends AbstractStructReader implements Resu
     }
   }
 
+  static class Float32Array extends PrimitiveArray<Float, float[]> {
+    Float32Array(ListValue protoList) {
+      super(protoList);
+    }
+
+    Float32Array(float[] data, BitSet nulls) {
+      super(data, nulls, data.length);
+    }
+
+    @Override
+    float[] newArray(int size) {
+      return new float[size];
+    }
+
+    @Override
+    void setProto(float[] array, int i, com.google.protobuf.Value protoValue) {
+      array[i] = valueProtoToFloat32(protoValue);
+    }
+
+    @Override
+    Float get(float[] array, int i) {
+      return array[i];
+    }
+  }
+
   static class Float64Array extends PrimitiveArray<Double, double[]> {
     Float64Array(ListValue protoList) {
       super(protoList);
@@ -1472,6 +1555,11 @@ abstract class AbstractResultSet<R> extends AbstractStructReader implements Resu
   @Override
   protected long getLongInternal(int columnIndex) {
     return currRow().getLongInternal(columnIndex);
+  }
+
+  @Override
+  protected float getFloatInternal(int columnIndex) {
+    return currRow().getFloatInternal(columnIndex);
   }
 
   @Override
@@ -1537,6 +1625,16 @@ abstract class AbstractResultSet<R> extends AbstractStructReader implements Resu
   @Override
   protected List<Long> getLongListInternal(int columnIndex) {
     return currRow().getLongListInternal(columnIndex);
+  }
+
+  @Override
+  protected float[] getFloatArrayInternal(int columnIndex) {
+    return currRow().getFloatArrayInternal(columnIndex);
+  }
+
+  @Override
+  protected List<Float> getFloatListInternal(int columnIndex) {
+    return currRow().getFloatListInternal(columnIndex);
   }
 
   @Override

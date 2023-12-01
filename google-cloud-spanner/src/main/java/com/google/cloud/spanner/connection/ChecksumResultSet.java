@@ -230,6 +230,9 @@ class ChecksumResultSet extends ReplaceableForwardingResultSet implements Retria
             case DATE:
               funnelValue(type, row.getDate(i), into);
               break;
+            case FLOAT32:
+              funnelValue(type, row.getFloat(i), into);
+              break;
             case FLOAT64:
               funnelValue(type, row.getDouble(i), into);
               break;
@@ -283,6 +286,12 @@ class ChecksumResultSet extends ReplaceableForwardingResultSet implements Retria
           into.putInt(row.getDateList(columnIndex).size());
           for (Date value : row.getDateList(columnIndex)) {
             funnelValue(Code.DATE, value, into);
+          }
+          break;
+        case FLOAT32:
+          into.putInt(row.getFloatList(columnIndex).size());
+          for (Float value : row.getFloatList(columnIndex)) {
+            funnelValue(Code.FLOAT32, value, into);
           }
           break;
         case FLOAT64:
@@ -364,6 +373,9 @@ class ChecksumResultSet extends ReplaceableForwardingResultSet implements Retria
           case DATE:
             Date date = (Date) value;
             into.putInt(date.getYear()).putInt(date.getMonth()).putInt(date.getDayOfMonth());
+            break;
+          case FLOAT32:
+            into.putFloat((Float) value);
             break;
           case FLOAT64:
             into.putDouble((Double) value);

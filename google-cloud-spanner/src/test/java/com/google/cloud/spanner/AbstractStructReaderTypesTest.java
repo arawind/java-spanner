@@ -56,6 +56,11 @@ public class AbstractStructReaderTypesTest {
     }
 
     @Override
+    protected float getFloatInternal(int columnIndex) {
+      return 0f;
+    }
+
+    @Override
     protected double getDoubleInternal(int columnIndex) {
       return 0;
     }
@@ -117,6 +122,16 @@ public class AbstractStructReaderTypesTest {
 
     @Override
     protected List<Long> getLongListInternal(int columnIndex) {
+      return null;
+    }
+
+    @Override
+    protected float[] getFloatArrayInternal(int columnIndex) {
+      return null;
+    }
+
+    @Override
+    protected List<Float> getFloatListInternal(int columnIndex) {
       return null;
     }
 
@@ -196,6 +211,13 @@ public class AbstractStructReaderTypesTest {
             Collections.singletonList("getValue")
           },
           {Type.int64(), "getLongInternal", 123L, "getLong", Collections.singletonList("getValue")},
+          {
+            Type.float32(),
+            "getFloatInternal",
+            2.0f,
+            "getFloat",
+            Collections.singletonList("getValue")
+          },
           {
             Type.float64(),
             "getDoubleInternal",
@@ -279,6 +301,20 @@ public class AbstractStructReaderTypesTest {
             Arrays.asList(3L, 4L),
             "getLongList",
             Arrays.asList("getLongArray", "getValue")
+          },
+          {
+            Type.array(Type.float32()),
+            "getFloatArrayInternal",
+            new float[] {1.0f, 2.0f},
+            "getFloatArray",
+            Arrays.asList("getFloatList", "getValue")
+          },
+          {
+            Type.array(Type.float32()),
+            "getFloatListInternal",
+            Arrays.asList(2.0f, 4.0f),
+            "getFloatList",
+            Arrays.asList("getFloatArray", "getValue")
           },
           {
             Type.array(Type.float64()),

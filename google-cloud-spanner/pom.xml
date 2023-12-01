@@ -55,7 +55,7 @@
             <!-- Executes unit tests -->
             <id>default-test</id>
             <configuration>
-              <excludedGroups>com.google.cloud.spanner.TracerTest,com.google.cloud.spanner.IntegrationTest</excludedGroups>
+            <excludedGroups>com.google.cloud.spanner.TracerTest,com.google.cloud.spanner.IntegrationTest</excludedGroups>
 
               <!-- These configurations are only needed for native tests. The native profile
              in shared-config uses maven-surefire to run both unit tests and integration tests -->
@@ -375,7 +375,7 @@
       <version>2.2</version>
       <scope>test</scope>
     </dependency>
-    
+
     <!-- Benchmarking dependencies -->
     <dependency>
       <groupId>org.openjdk.jmh</groupId>

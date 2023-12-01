@@ -235,6 +235,14 @@ public class ValueBinderTest {
       return 1234L;
     }
 
+    public static float defaultFloatPrimitive() {
+      return 1.0f;
+    }
+
+    public static Float defaultFloatWrapper() {
+      return 1.0f;
+    }
+
     public static double defaultDoublePrimitive() {
       return 1.0;
     }
@@ -289,6 +297,14 @@ public class ValueBinderTest {
 
     public static Iterable<Long> defaultLongIterable() {
       return Arrays.asList(1L, 2L);
+    }
+
+    public static float[] defaultFloatArray() {
+      return new float[] {1.0f, 2.0f};
+    }
+
+    public static Iterable<Float> defaultFloatIterable() {
+      return Arrays.asList(1.0f, 2.0f);
     }
 
     public static double[] defaultDoubleArray() {

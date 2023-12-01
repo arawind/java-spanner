@@ -105,6 +105,16 @@ public class TypeTest {
   }
 
   @Test
+  public void float32() {
+    new ScalarTypeTester(Type.Code.FLOAT32, TypeCode.FLOAT32) {
+      @Override
+      Type newType() {
+        return Type.float32();
+      }
+    }.test();
+  }
+
+  @Test
   public void float64() {
     new ScalarTypeTester(Type.Code.FLOAT64, TypeCode.FLOAT64) {
       @Override
@@ -263,6 +273,16 @@ public class TypeTest {
       @Override
       Type newElementType() {
         return Type.int64();
+      }
+    }.test();
+  }
+
+  @Test
+  public void float32Array() {
+    new ArrayTypeTester(Type.Code.FLOAT32, TypeCode.FLOAT32, true) {
+      @Override
+      Type newElementType() {
+        return Type.float32();
       }
     }.test();
   }
